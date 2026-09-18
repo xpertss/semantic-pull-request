@@ -1,0 +1,2 @@
+# semantic-pull-request
+A GitHub Action that ensures that your PR title matches the Conventional Commits spec
