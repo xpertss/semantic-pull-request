@@ -1,0 +1,56 @@
+name: 'Semantic Pull Request'
+description: 'Ensures that your PR title matches the Conventional Commits spec'
+author: 'xpertss'
+
+inputs:
+  types:
+    description: 'Allowed commit types, one per line (or comma-separated)'
+    required: false
+    default: |-
+      feat
+      fix
+      docs
+      style
+      refactor
+      perf
+      test
+      build
+      ci
+      chore
+      revert
+  requireScope:
+    description: 'Require a (scope) in the title'
+    required: false
+    default: 'false'
+  scopes:
+    description: 'If set, only these scopes are allowed'
+    required: false
+    default: ''
+  disallowScopes:
+    description: 'Scopes that are always rejected'
+    required: false
+    default: ''
+  pattern:
+    description: 'A custom regex that, when set, replaces the conventional-commit validation entirely'
+    required: false
+    default: ''
+  ignoreLabels:
+    description: 'Comma-separated labels; a PR carrying any of them is exempt'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Validate PR title
+      shell: bash
+      env:
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        INPUT_TYPES: ${{ inputs.types }}
+        INPUT_REQUIRESCOPE: ${{ inputs.requireScope }}
+        INPUT_SCOPES: ${{ inputs.scopes }}
+        INPUT_DISALLOWSCOPES: ${{ inputs.disallowScopes }}
+        INPUT_PATTERN: ${{ inputs.pattern }}
+        INPUT_IGNORELABELS: ${{ inputs.ignoreLabels }}
+      run: "${GITHUB_ACTION_PATH}/validate-title.sh"

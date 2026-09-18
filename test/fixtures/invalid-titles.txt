@@ -1,0 +1,8 @@
+wip: work in progress
+Feat: capitalized type
+feat add new widget
+feat:missing space before subject
+feat(): empty scope
+feat(scope); wrong separator
+$(rm -rf /): command substitution as type
+`rm -rf /`: backtick command substitution as type

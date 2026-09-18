@@ -1,0 +1,57 @@
+name: test-dogfood
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
+
+jobs:
+  dogfood:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert valid titles pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          while IFS= read -r title; do
+            [[ -z "$title" ]] && continue
+            if ! PR_TITLE="$title" "${GITHUB_WORKSPACE}/validate-title.sh"; then
+              echo "::error::expected VALID, got rejected: $title"
+              status=1
+            fi
+          done < test/fixtures/valid-titles.txt
+          exit "$status"
+
+      - name: Assert invalid titles fail
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          while IFS= read -r title; do
+            [[ -z "$title" ]] && continue
+            if PR_TITLE="$title" "${GITHUB_WORKSPACE}/validate-title.sh"; then
+              echo "::error::expected INVALID, got accepted: $title"
+              status=1
+            fi
+          done < test/fixtures/invalid-titles.txt
+          exit "$status"
+
+      - name: Assert label-exempt short-circuit
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Otherwise-invalid title, but carries an ignored label -> must pass
+          PR_TITLE="wip: work in progress" \
+          PR_LABELS="wip,other-label" \
+          INPUT_IGNORELABELS="wip" \
+            "${GITHUB_WORKSPACE}/validate-title.sh"
+
+      - name: Assert missing PR title passes (e.g. merge_group)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR_TITLE="" "${GITHUB_WORKSPACE}/validate-title.sh"

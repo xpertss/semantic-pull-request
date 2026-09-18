@@ -1,0 +1,70 @@
+name: publish
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump from the landed commit message
+        id: bump
+        run: |
+          set -euo pipefail
+          major_re='^[a-zA-Z]+(\([^)]*\))?!:'
+          minor_re='^feat(\([^)]*\))?:'
+          patch_re='^fix(\([^)]*\))?:'
+          bump=none
+          while IFS= read -r line; do
+            if [[ "$line" =~ $major_re ]]; then
+              bump=major
+              break
+            elif [[ "$line" =~ $minor_re ]]; then
+              bump=minor
+              break
+            elif [[ "$line" =~ $patch_re ]]; then
+              bump=patch
+              break
+            fi
+          done <<< "$(git log -1 --format=%B)"
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+      - name: Compute next version
+        id: version
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          set -euo pipefail
+          latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
+          if [[ -z "$latest" ]]; then
+            echo "version=0.1.0" >> "$GITHUB_OUTPUT"
+          else
+            IFS='.' read -r major minor patch <<< "${latest#v}"
+            case "${{ steps.bump.outputs.bump }}" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+            echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tag and push release
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          version="${{ steps.version.outputs.version }}"
+          tag="v${version}"
+          major_tag="v${version%%.*}"
+          git tag "$tag"
+          git push origin "$tag"
+          git tag -f "$major_tag" "$tag"
+          git push origin "$major_tag" --force

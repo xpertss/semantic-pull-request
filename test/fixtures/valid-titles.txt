@@ -1,0 +1,14 @@
+feat: add new widget
+fix: correct off-by-one error
+docs: update README
+style: reformat with prettier
+refactor: extract helper function
+perf: reduce allocation in hot loop
+test: add coverage for edge case
+build: bump esbuild version
+ci: cache node_modules
+chore: update dependencies
+revert: revert "feat: add new widget"
+feat(auth): add OAuth login
+fix(parser): handle empty input
+chore(deps): bump lodash to 4.17.21
